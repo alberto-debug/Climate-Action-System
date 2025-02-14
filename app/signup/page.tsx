@@ -55,20 +55,20 @@ export default function SignupPage() {
     let newErrors = { name: "", email: "", password: "", confirmPassword: "" };
 
     if (!name.trim()) {
-      newErrors.name = "Nome obrigatório";
+      newErrors.name = "Name is required";
     }
 
     if (!validateEmail(email)) {
-      newErrors.email = "Formato de e-mail inválido";
+      newErrors.email = "Invalid email format";
     }
 
     if (!validatePassword(password)) {
       newErrors.password =
-        "A senha deve ter no mínimo 8 caracteres, incluindo uma letra maiúscula, uma minúscula, um número e um caractere especial.";
+        "Password must be at least 8 characters long, including an uppercase letter, a lowercase letter, a number, and a special character.";
     }
 
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = "As senhas não coincidem.";
+      newErrors.confirmPassword = "Passwords do not match.";
     }
 
     if (Object.values(newErrors).some((error) => error)) {
@@ -86,8 +86,8 @@ export default function SignupPage() {
       });
 
       toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Agora você pode fazer login com suas credenciais.",
+        title: "Registration successful!",
+        description: "You can now log in with your credentials.",
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -96,8 +96,8 @@ export default function SignupPage() {
       router.push("/login");
     } catch (error: any) {
       toast({
-        title: "Erro no cadastro",
-        description: error.response?.data || "Erro desconhecido.",
+        title: "Registration error",
+        description: error.response?.data || "Unknown error.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -110,7 +110,9 @@ export default function SignupPage() {
   return (
     <div
       className="relative min-h-screen bg-cover bg-center"
-      style={{ backgroundImage: `url('your_image_url.jpg')` }}
+      style={{
+        backgroundImage: `url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CLIMATE%20ACTION%20SYSTEM%20(9)_page-0006.jpg-YxWtteq1iHQ3gFj75hpA6DIxx8FpkM.jpeg)`,
+      }}
     >
       <div className="absolute inset-0 bg-black/20" />
       <div className="relative">
