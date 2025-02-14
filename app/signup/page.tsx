@@ -19,6 +19,13 @@ export default function SignupPage() {
     confirmPassword: "",
   });
 
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const [loading, setLoading] = useState(false);
 
   const toast = useToast();
@@ -38,55 +45,34 @@ export default function SignupPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+    setErrors((prev) => ({ ...prev, [id]: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const { name, email, password, confirmPassword } = formData;
+    let newErrors = { name: "", email: "", password: "", confirmPassword: "" };
 
     if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Name is required.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
+      newErrors.name = "Nome obrigatório";
     }
 
     if (!validateEmail(email)) {
-      toast({
-        title: "Error",
-        description: "Invalid email format.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
+      newErrors.email = "Formato de e-mail inválido";
     }
 
     if (!validatePassword(password)) {
-      toast({
-        title: "Error",
-        description:
-          "Password must be at least 8 characters long, including an uppercase letter, a lowercase letter, a number, and a special character.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
+      newErrors.password =
+        "A senha deve ter no mínimo 8 caracteres, incluindo uma letra maiúscula, uma minúscula, um número e um caractere especial.";
     }
 
     if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      newErrors.confirmPassword = "As senhas não coincidem.";
+    }
+
+    if (Object.values(newErrors).some((error) => error)) {
+      setErrors(newErrors);
       return;
     }
 
@@ -100,8 +86,8 @@ export default function SignupPage() {
       });
 
       toast({
-        title: "Success",
-        description: "Registration successful! You can now log in.",
+        title: "Cadastro realizado com sucesso!",
+        description: "Agora você pode fazer login com suas credenciais.",
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -110,8 +96,8 @@ export default function SignupPage() {
       router.push("/login");
     } catch (error: any) {
       toast({
-        title: "Registration Error",
-        description: error.response?.data || "An unknown error occurred.",
+        title: "Erro no cadastro",
+        description: error.response?.data || "Erro desconhecido.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -150,6 +136,9 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     required
                   />
+                  {errors.name && (
+                    <p className="text-sm text-red-500">{errors.name}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">
@@ -163,6 +152,9 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     required
                   />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">
@@ -176,6 +168,9 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     required
                   />
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">
@@ -189,6 +184,11 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     required
                   />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-red-500">
+                      {errors.confirmPassword}
+                    </p>
+                  )}
                 </div>
                 <Button
                   type="submit"
