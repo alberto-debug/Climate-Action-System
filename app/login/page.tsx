@@ -2,21 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  FacebookAuthProvider,
-} from "firebase/auth";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSelector } from "@/components/language-selector";
 import { Logo } from "@/components/logo";
-import { auth } from "@/lib/firebase";
-import { Facebook } from "lucide-react";
-import axios from "axios";
 import { toast } from "react-toastify";
 
 export default function LoginPage() {
@@ -30,11 +22,27 @@ export default function LoginPage() {
   }>({});
   const router = useRouter();
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    let newErrors: { email?: string; password?: string; submit?: string } = {};
 
-    if (!email || !password) {
-      toast.warn("Por favor, preencha todos os campos.");
+    if (!email) {
+      newErrors.email = "Email is required.";
+    } else if (!validateEmail(email)) {
+      newErrors.email = "Invalid email format.";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -46,36 +54,14 @@ export default function LoginPage() {
         password,
       });
 
-      toast.success("Login realizado com sucesso!");
+      toast.success("Login successful!");
       sessionStorage.setItem("auth-token", response.data.token);
       router.push("/dashboard");
     } catch (error: any) {
-      toast.error("Erro ao realizar login. Verifique suas credenciais.");
-      setErrors({ submit: "Falha no login. Tente novamente." });
+      toast.error("Login failed. Check your credentials.");
+      setErrors({ submit: "Login failed. Please try again." });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast.success("Login com Google realizado!");
-      router.push("/dashboard");
-    } catch (error) {
-      toast.error("Erro ao fazer login com Google.");
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    try {
-      const provider = new FacebookAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast.success("Login com Facebook realizado!");
-      router.push("/dashboard");
-    } catch (error) {
-      toast.error("Erro ao fazer login com Facebook.");
     }
   };
 
@@ -95,7 +81,7 @@ export default function LoginPage() {
         <main className="flex items-center justify-center px-4 py-12">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle className="text-2xl">Login To Account</CardTitle>
+              <CardTitle className="text-2xl">Login to Your Account</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -110,7 +96,7 @@ export default function LoginPage() {
                     required
                   />
                   {errors.email && (
-                    <p className="text-sm text-red-500">{errors.email}</p>
+                    <p className="text-sm text-red-500 mt-1">{errors.email}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -124,11 +110,13 @@ export default function LoginPage() {
                     required
                   />
                   {errors.password && (
-                    <p className="text-sm text-red-500">{errors.password}</p>
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
                 {errors.submit && (
-                  <p className="text-sm text-red-500">{errors.submit}</p>
+                  <p className="text-sm text-red-500 mt-2">{errors.submit}</p>
                 )}
                 <Button
                   type="submit"
@@ -138,39 +126,6 @@ export default function LoginPage() {
                   {isLoading ? "Logging in..." : "Log In"}
                 </Button>
               </form>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-3"
-                onClick={handleFacebookLogin}
-              >
-                <Facebook className="size-5 text-blue-600" />
-                Login with Facebook
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-3"
-                onClick={handleGoogleLogin}
-              >
-                <svg className="size-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"
-                  />
-                  <path
-                    fill="#4A90E2"
-                    d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"
-                  />
-                </svg>
-                Login with Google
-              </Button>
               <div className="flex items-center justify-between">
                 <Button asChild variant="link" className="text-[#7ac943]">
                   <a href="/signup">SIGN UP</a>
