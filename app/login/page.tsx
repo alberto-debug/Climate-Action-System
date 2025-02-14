@@ -1,67 +1,83 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { LanguageSelector } from "@/components/language-selector"
-import { Logo } from "@/components/logo"
-import { auth } from "@/lib/firebase"
-import { Facebook } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+} from "firebase/auth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LanguageSelector } from "@/components/language-selector";
+import { Logo } from "@/components/logo";
+import { auth } from "@/lib/firebase";
+import { Facebook } from "lucide-react";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-    if (!email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Email is invalid"
-    if (!password) newErrors.password = "Password is required"
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    submit?: string;
+  }>({});
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateForm()) return
+    e.preventDefault();
 
-    setIsLoading(true)
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-      router.push("/dashboard")
-    } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : "An error occurred during login" })
-    } finally {
-      setIsLoading(false)
+    if (!email || !password) {
+      toast.warn("Por favor, preencha todos os campos.");
+      return;
     }
-  }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.post("http://localhost:8080/auth/login", {
+        email,
+        password,
+      });
+
+      toast.success("Login realizado com sucesso!");
+      sessionStorage.setItem("auth-token", response.data.token);
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error("Erro ao realizar login. Verifique suas credenciais.");
+      setErrors({ submit: "Falha no login. Tente novamente." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
-      router.push("/dashboard")
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast.success("Login com Google realizado!");
+      router.push("/dashboard");
     } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : "An error occurred during Google login" })
+      toast.error("Erro ao fazer login com Google.");
     }
-  }
+  };
 
   const handleFacebookLogin = async () => {
     try {
-      const provider = new FacebookAuthProvider()
-      await signInWithPopup(auth, provider)
-      router.push("/dashboard")
+      const provider = new FacebookAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast.success("Login com Facebook realizado!");
+      router.push("/dashboard");
     } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : "An error occurred during Facebook login" })
+      toast.error("Erro ao fazer login com Facebook.");
     }
-  }
+  };
 
   return (
     <div
@@ -93,7 +109,9 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -105,18 +123,34 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                  {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password}</p>
+                  )}
                 </div>
-                {errors.submit && <p className="text-sm text-red-500">{errors.submit}</p>}
-                <Button type="submit" className="w-full bg-[#7ac943] hover:bg-[#7ac943]/90" disabled={isLoading}>
+                {errors.submit && (
+                  <p className="text-sm text-red-500">{errors.submit}</p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-[#7ac943] hover:bg-[#7ac943]/90"
+                  disabled={isLoading}
+                >
                   {isLoading ? "Logging in..." : "Log In"}
                 </Button>
               </form>
-              <Button variant="outline" className="w-full justify-start gap-3" onClick={handleFacebookLogin}>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3"
+                onClick={handleFacebookLogin}
+              >
                 <Facebook className="size-5 text-blue-600" />
                 Login with Facebook
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3" onClick={handleGoogleLogin}>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3"
+                onClick={handleGoogleLogin}
+              >
                 <svg className="size-5" viewBox="0 0 24 24">
                   <path
                     fill="#EA4335"
@@ -150,6 +184,5 @@ export default function LoginPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
-
