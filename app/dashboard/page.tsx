@@ -9,53 +9,25 @@ import { LocationCard } from "@/components/ui/location-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Sidebar } from "@/components/ui/sidebar";
 import { AirQualityVisualization } from "@/components/air-quality-visualization";
+import { AirQualityData } from "../analytics/types/air-quality-data"; // Adjust the import path as needed
 
-// Define the TypeScript interface for the air quality data
-interface AirQualityData {
-  status: string;
-  data: {
-    aqi: number;
-    idx: number;
-    attributions: Array<{
-      url: string;
-      name: string;
-      logo: string;
-    }>;
-    city: {
-      geo: [number, number];
-      name: string;
-      url: string;
-      location: string;
-    };
-    dominentpol: string;
-    iaqi: {
-      dew: { v: number };
-      h: { v: number };
-      p: { v: number };
-      pm25: { v: number };
-      t: { v: number };
-      w: { v: number };
-      no2?: { v: number }; // Make no2 optional
-    };
-    time: {
-      s: string;
-      tz: string;
-      v: number;
-      iso: string;
-    };
-    forecast: {
-      daily: {
-        o3: Array<{ avg: number; day: string; max: number; min: number }>;
-        pm10: Array<{ avg: number; day: string; max: number; min: number }>;
-        pm25: Array<{ avg: number; day: string; max: number; min: number }>;
-        uvi: Array<{ avg: number; day: string; max: number; min: number }>;
-      };
-    };
-    debug: {
-      sync: string;
-    };
-  };
-}
+const AQI_COLOR_SCALE = [
+  { max: 50, color: "bg-green-500" }, // Good
+  { max: 100, color: "bg-yellow-500" }, // Moderate
+  { max: 150, color: "bg-orange-500" }, // Unhealthy for Sensitive Groups
+  { max: 200, color: "bg-red-500" }, // Unhealthy
+  { max: 300, color: "bg-purple-500" }, // Very Unhealthy
+  { max: Number.MAX_VALUE, color: "bg-brown-500" }, // Hazardous
+];
+
+const getAQIColor = (aqi: number) => {
+  for (let i = AQI_COLOR_SCALE.length - 1; i >= 0; i--) {
+    if (aqi <= AQI_COLOR_SCALE[i].max) {
+      return AQI_COLOR_SCALE[i].color;
+    }
+  }
+  return "bg-gray-500"; // Default color if AQI is undefined
+};
 
 export default function DashboardPage() {
   const chartRef = useRef<HTMLCanvasElement>(null);
@@ -88,7 +60,7 @@ export default function DashboardPage() {
     const pm25Data = airQualityData.data.forecast.daily.pm25.map(
       (day) => day.avg,
     );
-    const no2Data = airQualityData.data.forecast.daily.o3.map((day) => day.avg); // Assuming NO2 data is not available, using O3 as a placeholder
+    const no2Data = airQualityData.data.forecast.daily.o3.map((day) => day.avg); // Using O3 as a placeholder for NO2
     const labels = airQualityData.data.forecast.daily.pm25.map(
       (day) => day.day,
     );
@@ -105,7 +77,7 @@ export default function DashboardPage() {
             tension: 0.4,
           },
           {
-            label: "NO2",
+            label: "NO2 (O3 as proxy)",
             data: no2Data,
             borderColor: "#9333ea",
             tension: 0.4,
@@ -177,7 +149,7 @@ export default function DashboardPage() {
             </div>
             <div className="rounded-lg bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold">
-                PM 2.5 comparison with NO2
+                PM 2.5 comparison with NO2 (O3 as proxy)
               </h2>
               <div className="h-[300px]">
                 <canvas ref={chartRef} />
@@ -187,14 +159,69 @@ export default function DashboardPage() {
               <LocationCard
                 location="BUS STATION"
                 pm25={airQualityData?.data.iaqi.pm25.v || 0}
-                co2={79} // Assuming CO2 data is not available, using a placeholder value
+                co2={airQualityData?.data.iaqi.co?.v || 0} // Use CO data if available
               />
               <LocationCard
                 location="MOI AVENUE"
                 pm25={airQualityData?.data.iaqi.pm25.v || 0}
-                co2={79} // Assuming CO2 data is not available, using a placeholder value
+                co2={airQualityData?.data.iaqi.co?.v || 0} // Use CO data if available
               />
             </div>
+            {airQualityData && (
+              <div className="rounded-lg bg-white p-6">
+                <h2 className="mb-4 text-lg font-semibold">
+                  Air Quality Forecast
+                </h2>
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3">
+                        Date
+                      </th>
+                      <th scope="col" className="px-6 py-3">
+                        PM2.5
+                      </th>
+                      <th scope="col" className="px-6 py-3">
+                        PM10
+                      </th>
+                      <th scope="col" className="px-6 py-3">
+                        O3
+                      </th>
+                      <th scope="col" className="px-6 py-3">
+                        UVI
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {airQualityData.data.forecast.daily.pm25.map(
+                      (pm25, index) => (
+                        <tr key={index} className="bg-white border-b">
+                          <td className="px-6 py-4">{pm25.day}</td>
+                          <td className={`px-6 py-4 ${getAQIColor(pm25.avg)}`}>
+                            {pm25.avg}
+                          </td>
+                          <td
+                            className={`px-6 py-4 ${getAQIColor(airQualityData.data.forecast.daily.pm10[index].avg)}`}
+                          >
+                            {airQualityData.data.forecast.daily.pm10[index].avg}
+                          </td>
+                          <td
+                            className={`px-6 py-4 ${getAQIColor(airQualityData.data.forecast.daily.o3[index].avg)}`}
+                          >
+                            {airQualityData.data.forecast.daily.o3[index].avg}
+                          </td>
+                          <td
+                            className={`px-6 py-4 ${getAQIColor(airQualityData.data.forecast.daily.uvi[index].avg)}`}
+                          >
+                            {airQualityData.data.forecast.daily.uvi[index].avg}
+                          </td>
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </main>
       </div>

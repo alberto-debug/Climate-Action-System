@@ -1,10 +1,9 @@
-"use client";
-
+// src/components/air-quality-visualization.tsx
 import { useEffect, useRef } from "react";
 
 declare global {
   interface Window {
-    _aqiFeed?: (config: any) => void;
+    _aqiFeed: (config: any) => void;
   }
 }
 
@@ -29,10 +28,8 @@ export function AirQualityVisualization() {
       }
     };
 
-    // Set a timeout to wait for the script to load
     const timeoutId = setTimeout(loadFeed, 5000); // Adjust the timeout duration as needed
 
-    // Clean up the timeout and script on component unmount
     return () => {
       clearTimeout(timeoutId);
       document.body.removeChild(script);
