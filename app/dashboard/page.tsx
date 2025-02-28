@@ -88,6 +88,7 @@ export default function DashboardPage() {
     const pm25Data = airQualityData.data.forecast.daily.pm25.map(
       (day) => day.avg,
     );
+    const no2Data = airQualityData.data.forecast.daily.o3.map((day) => day.avg); // Assuming NO2 data is not available, using O3 as a placeholder
     const labels = airQualityData.data.forecast.daily.pm25.map(
       (day) => day.day,
     );
@@ -103,7 +104,12 @@ export default function DashboardPage() {
             borderColor: "#7ac943",
             tension: 0.4,
           },
-          // Add other datasets as needed
+          {
+            label: "NO2",
+            data: no2Data,
+            borderColor: "#9333ea",
+            tension: 0.4,
+          },
         ],
       },
       options: {
@@ -178,8 +184,16 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <LocationCard location="BUS STATION" pm25={149} co2={79} />
-              <LocationCard location="MOI AVENUE" pm25={149} co2={79} />
+              <LocationCard
+                location="BUS STATION"
+                pm25={airQualityData?.data.iaqi.pm25.v || 0}
+                co2={79} // Assuming CO2 data is not available, using a placeholder value
+              />
+              <LocationCard
+                location="MOI AVENUE"
+                pm25={airQualityData?.data.iaqi.pm25.v || 0}
+                co2={79} // Assuming CO2 data is not available, using a placeholder value
+              />
             </div>
           </div>
         </main>
