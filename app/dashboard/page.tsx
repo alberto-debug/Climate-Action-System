@@ -1,47 +1,109 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
-import { Bell } from "lucide-react"
-import { Chart } from "chart.js/auto"
+import { useEffect, useRef, useState } from "react";
+import { Bell } from "lucide-react";
+import { Chart } from "chart.js/auto";
 
-import { Button } from "@/components/ui/button"
-import { LocationCard } from "@/components/ui/location-card"
-import { MetricCard } from "@/components/ui/metric-card"
-import { Sidebar } from "@/components/ui/sidebar"
-import { AirQualityVisualization } from "@/components/air-quality-visualization"
+import { Button } from "@/components/ui/button";
+import { LocationCard } from "@/components/ui/location-card";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Sidebar } from "@/components/ui/sidebar";
+import { AirQualityVisualization } from "@/components/air-quality-visualization";
+
+// Define the TypeScript interface for the air quality data
+interface AirQualityData {
+  status: string;
+  data: {
+    aqi: number;
+    idx: number;
+    attributions: Array<{
+      url: string;
+      name: string;
+      logo: string;
+    }>;
+    city: {
+      geo: [number, number];
+      name: string;
+      url: string;
+      location: string;
+    };
+    dominentpol: string;
+    iaqi: {
+      dew: { v: number };
+      h: { v: number };
+      p: { v: number };
+      pm25: { v: number };
+      t: { v: number };
+      w: { v: number };
+      no2?: { v: number }; // Make no2 optional
+    };
+    time: {
+      s: string;
+      tz: string;
+      v: number;
+      iso: string;
+    };
+    forecast: {
+      daily: {
+        o3: Array<{ avg: number; day: string; max: number; min: number }>;
+        pm10: Array<{ avg: number; day: string; max: number; min: number }>;
+        pm25: Array<{ avg: number; day: string; max: number; min: number }>;
+        uvi: Array<{ avg: number; day: string; max: number; min: number }>;
+      };
+    };
+    debug: {
+      sync: string;
+    };
+  };
+}
 
 export default function DashboardPage() {
-  const chartRef = useRef<HTMLCanvasElement>(null)
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const [airQualityData, setAirQualityData] = useState<AirQualityData | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!chartRef.current) return
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "https://api.waqi.info/feed/@9470/?token=fc646f91f10772d2056e2765da59858ca9049688",
+        );
+        const data: AirQualityData = await response.json();
+        setAirQualityData(data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
 
-    const ctx = chartRef.current.getContext("2d")
-    if (!ctx) return
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!chartRef.current || !airQualityData) return;
+
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) return;
+
+    const pm25Data = airQualityData.data.forecast.daily.pm25.map(
+      (day) => day.avg,
+    );
+    const labels = airQualityData.data.forecast.daily.pm25.map(
+      (day) => day.day,
+    );
 
     const chart = new Chart(ctx, {
       type: "line",
       data: {
-        labels: Array.from({ length: 27 }, (_, i) => i + 1),
+        labels: labels,
         datasets: [
           {
             label: "PM 2.5",
-            data: [
-              20, 35, 45, 30, 55, 40, 45, 35, 55, 40, 50, 60, 45, 35, 25, 45, 55, 40, 35, 30, 45, 50, 55, 45, 40, 35,
-              30,
-            ],
+            data: pm25Data,
             borderColor: "#7ac943",
             tension: 0.4,
           },
-          {
-            label: "NO2",
-            data: [
-              30, 40, 35, 45, 40, 35, 45, 50, 40, 35, 45, 50, 40, 45, 35, 40, 45, 35, 30, 40, 45, 35, 40, 45, 50, 45,
-              40,
-            ],
-            borderColor: "#9333ea",
-            tension: 0.4,
-          },
+          // Add other datasets as needed
         ],
       },
       options: {
@@ -57,12 +119,12 @@ export default function DashboardPage() {
           },
         },
       },
-    })
+    });
 
     return () => {
-      chart.destroy()
-    }
-  }, [])
+      chart.destroy();
+    };
+  }, [airQualityData]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -82,16 +144,35 @@ export default function DashboardPage() {
         <main className="p-6">
           <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-3">
-              <MetricCard title="Current Pollution Level" value={65} label="Moderate" type="indoor" />
-              <MetricCard title="Today's Average PM2.5 Levels" value={12} label="Indoor" type="outdoor" />
-              <MetricCard title="Today's Average NO2 Levels" value={244} label="Indoor" type="outdoor" />
+              <MetricCard
+                title="Current Pollution Level"
+                value={airQualityData?.data.aqi || 0}
+                label="Moderate"
+                type="indoor"
+              />
+              <MetricCard
+                title="Today's Average PM2.5 Levels"
+                value={airQualityData?.data.iaqi.pm25.v || 0}
+                label="Indoor"
+                type="outdoor"
+              />
+              <MetricCard
+                title="Today's Average NO2 Levels"
+                value={airQualityData?.data.iaqi.no2?.v || 0}
+                label="Indoor"
+                type="outdoor"
+              />
             </div>
             <div className="rounded-lg bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold">Nairobi Air Quality Index</h2>
+              <h2 className="mb-4 text-lg font-semibold">
+                Nairobi Air Quality Index
+              </h2>
               <AirQualityVisualization />
             </div>
             <div className="rounded-lg bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold">PM 2.5 comparison with NO2</h2>
+              <h2 className="mb-4 text-lg font-semibold">
+                PM 2.5 comparison with NO2
+              </h2>
               <div className="h-[300px]">
                 <canvas ref={chartRef} />
               </div>
@@ -104,6 +185,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
-
