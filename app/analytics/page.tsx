@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Line } from "react-chartjs-2"
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,34 +12,67 @@ import {
   Title,
   Tooltip,
   Legend,
-} from "chart.js"
-import { AQIFeed } from "@/components/analytics/aqi-feed"
-import { Sidebar } from "@/components/ui/sidebar"
+} from "chart.js";
+import { AQIFeed } from "@/components/analytics/aqi-feed";
+import { Sidebar } from "@/components/ui/sidebar";
+import { fetchAirQualityData } from "./types/air-quality";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+);
 
 export default function AnalyticsPage() {
+  const [airQualityData, setAirQualityData] = useState<any | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await fetchAirQualityData();
+        setAirQualityData(data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const user = {
     name: "Emmanuel Ngunnzi",
     uid: "1124AB",
     avatar: "/placeholder.svg?height=64&width=64",
-  }
+  };
 
   const chartData = {
-    labels: Array.from({ length: 31 }, (_, i) => i + 1),
+    labels:
+      airQualityData?.data.forecast.daily.pm25.map((day: any) => day.day) || [],
     datasets: [
       {
-        label: "PM 2.5 comparison with NO2",
-        data: [
-          40, 45, 42, 47, 45, 43, 44, 46, 48, 45, 42, 40, 43, 45, 47, 48, 45, 43, 42, 44, 46, 45, 43, 41, 44, 46, 48,
-          45, 43, 42, 44,
-        ],
+        label: "PM 2.5",
+        data:
+          airQualityData?.data.forecast.daily.pm25.map((day: any) => day.avg) ||
+          [],
         borderColor: "#666",
         tension: 0.4,
         fill: false,
       },
+      {
+        label: "NO2 (O3 as proxy)",
+        data:
+          airQualityData?.data.forecast.daily.o3.map((day: any) => day.avg) ||
+          [],
+        borderColor: "#9333ea",
+        tension: 0.4,
+        fill: false,
+      },
     ],
-  }
+  };
 
   const chartOptions = {
     responsive: true,
@@ -46,63 +80,73 @@ export default function AnalyticsPage() {
       y: {
         beginAtZero: true,
         grid: {
-          color: "#444",
+          color: "#ddd",
         },
       },
       x: {
         grid: {
-          color: "#444",
+          color: "#ddd",
         },
       },
     },
-  }
+  };
 
   return (
-    <div className="flex h-screen bg-[#1a1a1a] text-white">
+    <div className="flex h-screen bg-white text-black">
       <Sidebar />
       <div className="flex-1 overflow-auto p-6">
         {/* User Header */}
         <div className="mb-6 flex items-center gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold">{user.name}</h1>
-            <p className="text-gray-400">UID: {user.uid}</p>
+            <p className="text-gray-500">UID: {user.uid}</p>
           </div>
-          <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-16 w-16 rounded-full" />
+          <img
+            src={user.avatar || "/placeholder.svg"}
+            alt={user.name}
+            className="h-16 w-16 rounded-full"
+          />
         </div>
 
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="border-none bg-[#222]">
+          <Card className="border-none bg-white shadow-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <span>Current Pollution Level</span>
-                <span className="text-yellow-400">65</span>
+                <span className="text-yellow-500">
+                  {airQualityData?.data.aqi || 0}
+                </span>
               </div>
-              <div className="text-sm text-gray-400">Moderate</div>
+              <div className="text-sm text-gray-500">Moderate</div>
             </CardContent>
           </Card>
-          <Card className="border-none bg-[#222]">
+          <Card className="border-none bg-white shadow-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <span>Today&apos;s Reading</span>
-                <span className="text-orange-400">12</span>
+                <span className="text-orange-500">
+                  {airQualityData?.data.iaqi.pm25.v || 0}
+                </span>
               </div>
-              <div className="text-sm text-gray-400">Indoor</div>
+              <div className="text-sm text-gray-500">Indoor</div>
             </CardContent>
           </Card>
-          <Card className="border-none bg-[#222]">
+          <Card className="border-none bg-white shadow-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <span>Today&apos;s Average</span>
-                <span className="text-purple-400">244</span>
+                <span className="text-purple-500">
+                  {airQualityData?.data.iaqi.no2?.v || 0}
+                </span>
               </div>
-              <div className="text-sm text-gray-400">Outdoor</div>
+              <div className="text-sm text-gray-500">Outdoor</div>
             </CardContent>
           </Card>
         </div>
 
         {/* AQI Feed */}
-        <Card className="mb-6 border-none bg-[#222]">
+        <Card className="mb-6 border-none bg-white shadow-md">
           <CardContent className="p-4">
             <h3 className="mb-2 text-lg">Nairobi Air Quality Index</h3>
             <AQIFeed />
@@ -110,7 +154,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Chart */}
-        <Card className="mb-6 border-none bg-[#222]">
+        <Card className="mb-6 border-none bg-white shadow-md">
           <CardContent className="p-4">
             <Line data={chartData} options={chartOptions} />
           </CardContent>
@@ -118,12 +162,12 @@ export default function AnalyticsPage() {
 
         {/* Location Stats */}
         <div className="space-y-4">
-          <Card className="border-none bg-[#222]">
+          <Card className="border-none bg-white shadow-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg">BUS STATION</h3>
-                  <p className="text-sm text-gray-400">PM 2.5 Hazardous</p>
+                  <p className="text-sm text-gray-500">PM 2.5 Hazardous</p>
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="relative h-16 w-16">
@@ -131,7 +175,9 @@ export default function AnalyticsPage() {
                       className="absolute inset-0 rounded-full border-4 border-red-500"
                       style={{ clipPath: "inset(50% 0 0 0)" }}
                     >
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">149</span>
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        {airQualityData?.data.iaqi.pm25.v || 0}
+                      </span>
                     </div>
                   </div>
                   <div className="relative h-16 w-16">
@@ -139,21 +185,23 @@ export default function AnalyticsPage() {
                       className="absolute inset-0 rounded-full border-4 border-green-500"
                       style={{ clipPath: "inset(50% 0 0 0)" }}
                     >
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">79</span>
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        {airQualityData?.data.iaqi.no2?.v || 0}
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-400">Normal</span>
+                    <span className="text-sm text-gray-500">Normal</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-[#222]">
+          <Card className="border-none bg-white shadow-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg">MOI AVENUE</h3>
-                  <p className="text-sm text-gray-400">PM 2.5 Hazardous</p>
+                  <p className="text-sm text-gray-500">PM 2.5 Hazardous</p>
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="relative h-16 w-16">
@@ -161,7 +209,9 @@ export default function AnalyticsPage() {
                       className="absolute inset-0 rounded-full border-4 border-red-500"
                       style={{ clipPath: "inset(50% 0 0 0)" }}
                     >
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">149</span>
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        {airQualityData?.data.iaqi.pm25.v || 0}
+                      </span>
                     </div>
                   </div>
                   <div className="relative h-16 w-16">
@@ -169,9 +219,11 @@ export default function AnalyticsPage() {
                       className="absolute inset-0 rounded-full border-4 border-green-500"
                       style={{ clipPath: "inset(50% 0 0 0)" }}
                     >
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">79</span>
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        {airQualityData?.data.iaqi.no2?.v || 0}
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-400">Normal</span>
+                    <span className="text-sm text-gray-500">Normal</span>
                   </div>
                 </div>
               </div>
@@ -180,6 +232,5 @@ export default function AnalyticsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
